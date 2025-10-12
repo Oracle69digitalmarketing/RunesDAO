@@ -1,0 +1,6 @@
+[package]
+name = "runesdao_contracts"
+version = "0.1.0"
+
+[dependencies]
+starknet = ">=2.5.0"
