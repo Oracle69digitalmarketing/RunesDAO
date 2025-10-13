@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, View, TextInput } from 'react-native';
-import { StarknetConfig, InjectedConnector, useStarknet, useStarknetContract, useStarknetExecute } from '@starknet-react/core';
+import { SafeAreaView, StyleSheet, Text, Button, View, TextInput, Alert } from 'react-native';
+import { XionProvider, useAbstraxion } from '@burnt-labs/abstraxion-react-native';
+import { PaymasterRpc } from '@avnu/paymaster-sdk';
+import { initAtomiq } from '@atomiq/sdk';
 import { Subscriptions } from './Subscriptions';
-
-// Mock RunesAuth object
-const RunesAuth = {
-  connectXverseWallet: async () => {
-    return "bc1q..."; // Mock Bitcoin address
-  },
-  getRunesBalance: async (address: string, runeId: string) => {
-    return 100; // Mock balance
-  },
-  signRunesOwnership: async (address: string, runeId: string) => {
-    return "mock_signature"; // Mock signature
-  }
-};
+import { Account, Contract } from 'starknet';
+import { AVNU_API_KEY } from '@env';
 
 const contractAddress = "0x0..."; // Placeholder
 const simplifiedAbi = [
@@ -35,6 +26,7 @@ const simplifiedAbi = [
     "inputs": [
       { "name": "proposal_id", "type": "u256" },
       { "name": "support", "type": "bool" },
+      { "name": "bitcoin_address", "type": "felt252" },
       { "name": "signature", "type": "felt252" }
     ],
     "outputs": [],
@@ -43,59 +35,66 @@ const simplifiedAbi = [
 ];
 
 function App(): React.JSX.Element {
-  const { account } = useStarknet();
-  const { contract } = useStarknetContract({ abi: simplifiedAbi, address: contractAddress });
-  const { execute: registerMember } = useStarknetExecute({ calls: [] });
-  const { execute: vote } = useStarknetExecute({ calls: [] });
+  const { abstraxionAccount, isConnected, login, logout } = useAbstraxion();
 
-
-  const [bitcoinAddress, setBitcoinAddress] = useState<string | null>(null);
-  const [runesBalance, setRunesBalance] = useState<number | null>(null);
-  const [signature, setSignature] = useState<string | null>(null);
   const [proposalId, setProposalId] = useState<string>("");
+  const [btcAmount, setBtcAmount] = useState<string>("");
 
-  const handleConnectWallet = async () => {
-    const runeId = "840000:84"; // Example rune ID
-    const address = await RunesAuth.connectXverseWallet();
-    setBitcoinAddress(address);
-    const balance = await RunesAuth.getRunesBalance(address, runeId);
-    setRunesBalance(balance);
-    const sig = await RunesAuth.signRunesOwnership(address, runeId);
-    setSignature(sig);
-  };
-
-  const handleRegisterMember = () => {
-    if (contract && bitcoinAddress && runesBalance && signature) {
-      const calls = contract.populate('register_member', [bitcoinAddress, runesBalance, signature]);
-      registerMember({ calls });
+  const handleRegisterMember = async () => {
+    if (abstraxionAccount) {
+      console.log("Registering member...");
     }
   };
 
   const handleVote = (support: boolean) => {
-    if (contract && proposalId && signature) {
-      const calls = contract.populate('vote', [proposalId, support, signature]);
-      vote({ calls });
+    if (abstraxionAccount && proposalId) {
+      console.log(`Voting on proposal ${proposalId}`);
+    }
+  };
+
+  const handleBridgeBTC = async () => {
+    if (!btcAmount || isNaN(Number(btcAmount))) {
+      Alert.alert("Invalid Amount", "Please enter a valid amount of BTC to bridge.");
+      return;
+    }
+    try {
+      const atomiq = initAtomiq({ network: 'mainnet' });
+      console.log(`Bridging ${btcAmount} BTC...`);
+      const bridgedBTC = await atomiq.bitcoinToStarknet(Number(btcAmount), 'WBTC');
+      console.log("Bridged BTC:", bridgedBTC);
+      Alert.alert("Bridge Successful", `${btcAmount} BTC has been bridged to WBTC on Starknet.`);
+    } catch (error) {
+      console.error("Bridge failed:", error);
+      Alert.alert("Bridge Failed", "Could not bridge BTC. See console for details.");
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>RunesDAO</Text>
+      <Text style={styles.title}>RunesDAO+</Text>
       <View style={styles.buttonContainer}>
-        <Button title="Connect Bitcoin Wallet" onPress={handleConnectWallet} />
+        {isConnected ? (
+          <Button title="Logout" onPress={logout} />
+        ) : (
+          <Button title="Connect with XION" onPress={() => login()} />
+        )}
       </View>
-      {bitcoinAddress && (
-        <View style={styles.infoContainer}>
-          <Text>Address: {bitcoinAddress}</Text>
-          <Text>Runes Balance: {runesBalance}</Text>
-          <Text>Signature: {signature}</Text>
-        </View>
-      )}
 
-      {account ? (
+      {isConnected && abstraxionAccount ? (
         <View>
-          <Text>Starknet Account: {account.address}</Text>
+          <Text>Starknet Account: {abstraxionAccount.address}</Text>
           <Button title="Register as Member" onPress={handleRegisterMember} />
+
+          <View style={styles.bridgeContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Amount of BTC to Bridge"
+              onChangeText={setBtcAmount}
+              value={btcAmount}
+              keyboardType="numeric"
+            />
+            <Button title="Bridge BTC to Starknet" onPress={handleBridgeBTC} />
+          </View>
 
           <View style={styles.voteContainer}>
             <TextInput
@@ -107,10 +106,10 @@ function App(): React.JSX.Element {
             <Button title="Vote For" onPress={() => handleVote(true)} />
             <Button title="Vote Against" onPress={() => handleVote(false)} />
           </View>
-          <Subscriptions />
+          <Subscriptions abstraxionAccount={abstraxionAccount} />
         </View>
       ) : (
-        <Text>Connect your Starknet wallet</Text>
+        <Text>Connect your wallet to get started.</Text>
       )}
     </SafeAreaView>
   );
@@ -137,6 +136,12 @@ const styles = StyleSheet.create({
   voteContainer: {
     marginTop: 20,
   },
+  bridgeContainer: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+    paddingTop: 20,
+  },
   input: {
     height: 40,
     borderColor: 'gray',
@@ -146,14 +151,13 @@ const styles = StyleSheet.create({
   }
 });
 
-
-const connectors = [
-  new InjectedConnector({ options: { id: 'argentX' } }),
-  new InjectedConnector({ options: { id: 'braavos' } }),
-];
+const paymaster = new PaymasterRpc({
+  nodeUrl: 'https://starknet.paymaster.avnu.fi',
+  headers: { 'api-key': AVNU_API_KEY }
+});
 
 export default () => (
-  <StarknetConfig connectors={connectors} autoConnect>
+  <XionProvider paymaster={paymaster}>
     <App />
-  </StarknetConfig>
+  </XionProvider>
 );

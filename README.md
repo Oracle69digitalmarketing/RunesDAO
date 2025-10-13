@@ -155,4 +155,11 @@ Suggestions:
 
 ---
 
+### Deployment Status
+RunesDAO and Subscriptions contracts are compiled and verified locally.
+Due to limited testnet funds, contracts are not yet deployed on Starknet Sepolia.
+Deployment-ready artifacts are available in `/target/` and commands in `/scripts/deploy.sh`.
+
+---
+
 Sources: Based on technical briefs from HackMD Starknet Re{Solve}. https://hackmd.io/ @espejelomar/B1FjnFxigg
