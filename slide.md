@@ -89,4 +89,4 @@ We are a passionate team of developers and designers with deep expertise in:
 
 *   **Follow us on Twitter:** @RunesDAO
 *   **Join our Discord:** discord.gg/RunesDAO
-*   **Contact us:** contact@runesdao.io
+*   **Contact us:** contact@oracle69.com
