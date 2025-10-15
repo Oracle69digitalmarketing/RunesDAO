@@ -1,52 +1,32 @@
-import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, View, TextInput, Alert } from 'react-native';
-import { XionProvider, useAbstraxion } from '@burnt-labs/abstraxion-react-native';
-import { PaymasterRpc } from '@avnu/paymaster-sdk';
-import { initAtomiq } from '@atomiq/sdk';
-import { Subscriptions } from './Subscriptions';
-import { Account, Contract } from 'starknet';
-import { AVNU_API_KEY } from '@env';
-
-const contractAddress = "0x0..."; // Placeholder
-const simplifiedAbi = [
-  {
-    "type": "function",
-    "name": "register_member",
-    "inputs": [
-      { "name": "bitcoin_address", "type": "felt252" },
-      { "name": "runes_balance", "type": "u256" },
-      { "name": "signature", "type": "felt252" }
-    ],
-    "outputs": [],
-    "state_mutability": "external"
-  },
-  {
-    "type": "function",
-    "name": "vote",
-    "inputs": [
-      { "name": "proposal_id", "type": "u256" },
-      { "name": "support", "type": "bool" },
-      { "name": "bitcoin_address", "type": "felt252" },
-      { "name": "signature", "type": "felt252" }
-    ],
-    "outputs": [],
-    "state_mutability": "external"
-  }
-];
+import React, {useState} from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  Button,
+  View,
+  TextInput,
+  Alert,
+} from 'react-native';
+import {XionProvider, useAbstraxion} from '@burnt-labs/abstraxion-react-native';
+import {PaymasterRpc} from '@avnu/paymaster-sdk';
+import {initAtomiq} from '@atomiq/sdk';
+import {Subscriptions} from './Subscriptions';
+import {AVNU_API_KEY} from '@env';
 
 function App(): React.JSX.Element {
-  const { abstraxionAccount, isConnected, login, logout } = useAbstraxion();
+  const {abstraxionAccount, isConnected, login, logout} = useAbstraxion();
 
-  const [proposalId, setProposalId] = useState<string>("");
-  const [btcAmount, setBtcAmount] = useState<string>("");
+  const [proposalId, setProposalId] = useState<string>('');
+  const [btcAmount, setBtcAmount] = useState<string>('');
 
   const handleRegisterMember = async () => {
     if (abstraxionAccount) {
-      console.log("Registering member...");
+      console.log('Registering member...');
     }
   };
 
-  const handleVote = (support: boolean) => {
+  const handleVote = (_support: boolean) => {
     if (abstraxionAccount && proposalId) {
       console.log(`Voting on proposal ${proposalId}`);
     }
@@ -54,18 +34,30 @@ function App(): React.JSX.Element {
 
   const handleBridgeBTC = async () => {
     if (!btcAmount || isNaN(Number(btcAmount))) {
-      Alert.alert("Invalid Amount", "Please enter a valid amount of BTC to bridge.");
+      Alert.alert(
+        'Invalid Amount',
+        'Please enter a valid amount of BTC to bridge.',
+      );
       return;
     }
     try {
-      const atomiq = initAtomiq({ network: 'mainnet' });
+      const atomiq = initAtomiq({network: 'mainnet'});
       console.log(`Bridging ${btcAmount} BTC...`);
-      const bridgedBTC = await atomiq.bitcoinToStarknet(Number(btcAmount), 'WBTC');
-      console.log("Bridged BTC:", bridgedBTC);
-      Alert.alert("Bridge Successful", `${btcAmount} BTC has been bridged to WBTC on Starknet.`);
+      const bridgedBTC = await atomiq.bitcoinToStarknet(
+        Number(btcAmount),
+        'WBTC',
+      );
+      console.log('Bridged BTC:', bridgedBTC);
+      Alert.alert(
+        'Bridge Successful',
+        `${btcAmount} BTC has been bridged to WBTC on Starknet.`,
+      );
     } catch (error) {
-      console.error("Bridge failed:", error);
-      Alert.alert("Bridge Failed", "Could not bridge BTC. See console for details.");
+      console.error('Bridge failed:', error);
+      Alert.alert(
+        'Bridge Failed',
+        'Could not bridge BTC. See console for details.',
+      );
     }
   };
 
@@ -148,12 +140,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
-  }
+  },
 });
 
 const paymaster = new PaymasterRpc({
   nodeUrl: 'https://starknet.paymaster.avnu.fi',
-  headers: { 'api-key': AVNU_API_KEY }
+  headers: {'api-key': AVNU_API_KEY},
 });
 
 export default () => (
